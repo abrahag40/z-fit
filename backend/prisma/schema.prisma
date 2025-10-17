@@ -8,30 +8,31 @@ datasource db {
 }
 
 model User {
-  id           String       @id @default(cuid())
-  email        String       @unique
-  name         String?
-  passwordHash String
-  role         Role         @default(CLIENT)
-  isActive     Boolean      @default(true)
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
-  lastLoginAt  DateTime?
-  memberships  Membership[]
+  id             String        @id @default(cuid())
+  email          String        @unique
+  name           String?
+  passwordHash   String
+  role           Role          @default(CLIENT)
+  isActive       Boolean       @default(true)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  lastLoginAt    DateTime?
+  memberships    Membership[]  // 1:N
+  checkins       Checkin[]     // 👈 1:N nueva relación
 }
 
 model Membership {
-  id        String           @id @default(cuid())
-  userId    String
-  type      String
-  startDate DateTime
-  endDate   DateTime
-  status    MembershipStatus @default(ACTIVE)
-  price     Float?
-  createdAt DateTime         @default(now())
-  updatedAt DateTime         @updatedAt
-  user      User             @relation(fields: [userId], references: [id])
-
+  id            String            @id @default(cuid())
+  userId        String
+  type          String
+  startDate     DateTime
+  endDate       DateTime
+  status        MembershipStatus  @default(ACTIVE)
+  price         Float?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  user          User              @relation(fields: [userId], references: [id])
+  checkins      Checkin[]         // 👈 nueva relación
   @@index([userId])
   @@map("memberships")
 }
@@ -47,4 +48,27 @@ enum MembershipStatus {
   EXPIRED
   FROZEN
   CANCELLED
+}
+
+enum CheckinStatus {
+  ALLOWED
+  DENIED
+}
+
+model Checkin {
+  id            String         @id @default(cuid())
+  userId        String
+  membershipId  String?
+  timestamp     DateTime       @default(now())
+  status        CheckinStatus  @default(ALLOWED)
+  notes         String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  user          User           @relation(fields: [userId], references: [id])
+  membership    Membership?    @relation(fields: [membershipId], references: [id])
+
+  @@index([userId])
+  @@index([membershipId])
+  @@map("checkins")
 }
