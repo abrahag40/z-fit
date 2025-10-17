@@ -29,4 +29,24 @@ export class MembershipsRepository {
   delete(id: string): Promise<Membership> {
     return this.prisma.membership.delete({ where: { id } });
   }
+
+  // Nuevo método: contar y expirar en la base con un solo query
+  async expireAllBefore(now: Date): Promise<number> {
+    const res = await this.prisma.membership.updateMany({
+      where: {
+        status: 'ACTIVE',             // o MembershipStatus.ACTIVE
+        endDate: { lt: now },
+      },
+      data: { status: 'EXPIRED' },     // o MembershipStatus.EXPIRED
+    });
+    return res.count;
+  }
+
+  // (Opcional) Diagnóstico: ver candidatos a expirar
+  async findCandidatesToExpire(now: Date) {
+    return this.prisma.membership.findMany({
+      where: { status: 'ACTIVE', endDate: { lt: now } },
+      orderBy: { endDate: 'asc' },
+    });
+  }
 }

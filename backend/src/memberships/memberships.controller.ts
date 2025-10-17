@@ -14,6 +14,7 @@ import { CreateMembershipDto } from './dto/create-membership.dto';
 import { UpdateMembershipDto } from './dto/update-membership.dto';
 import { Roles } from '../auth/roles.decorator';
 import { Role } from '@prisma/client';
+import { Query } from '@nestjs/common';
 
 @ApiTags('memberships')
 @ApiBearerAuth()
@@ -54,5 +55,27 @@ export class MembershipsController {
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.service.remove(id);
+  }
+
+  @Roles(Role.ADMIN)
+  @Post(':id/renew')
+  renewMembership(
+    @Param('id') id: string,
+    @Query('days') days: string,
+  ) {
+    const extraDays = parseInt(days, 10) || 30;
+    return this.service.renewMembership(id, extraDays);
+  }
+
+  @Roles(Role.ADMIN)
+  @Post('check-expired')
+  checkExpired() {
+    return this.service.checkExpiredMemberships(); // { updated: number }
+  }
+
+  @Roles(Role.ADMIN)
+  @Get('debug/candidates-expire')
+  debugCandidates() {
+    return this.service.previewExpiredCandidates();
   }
 }

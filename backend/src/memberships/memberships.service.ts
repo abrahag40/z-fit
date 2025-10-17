@@ -70,4 +70,38 @@ export class MembershipsService {
       updatedAt: m.updatedAt,
     };
   }
+
+  /**
+   * Marca todas las membresías vencidas como EXPIRED.
+   * Puede ejecutarse de forma manual o con un cron en el futuro.
+   */
+  async checkExpiredMemberships(): Promise<{ updated: number }> {
+    const now = new Date();
+    const updated = await this.repo.expireAllBefore(now);
+    return { updated };
+  }
+
+  async previewExpiredCandidates(): Promise<any[]> {
+    const now = new Date();
+    return this.repo.findCandidatesToExpire(now);
+  }
+
+  /**
+   * Renueva una membresía extendiendo su vigencia.
+   */
+  async renewMembership(id: string, extraDays: number): Promise<MembershipResponseDto> {
+    const membership = await this.repo.findById(id);
+    if (!membership) throw new NotFoundException('Membresía no encontrada');
+
+    const newEndDate = new Date(membership.endDate);
+    newEndDate.setDate(newEndDate.getDate() + extraDays);
+
+    const updated = await this.repo.update(id, {
+      status: 'ACTIVE',
+      endDate: newEndDate,
+    });
+
+    return this.toResponse(updated);
+  }
+
 }
