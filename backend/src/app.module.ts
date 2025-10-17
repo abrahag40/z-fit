@@ -10,6 +10,7 @@ import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { RolesGuard } from './auth/roles.guard';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
+import { MembershipsModule } from './memberships/memberships.module';
 
 @Module({
   imports: [
@@ -23,7 +24,8 @@ import { JwtAuthGuard } from './auth/jwt-auth.guard';
     PrismaModule,
     HealthModule,
     UsersModule,
-    AuthModule
+    AuthModule,
+    MembershipsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },
