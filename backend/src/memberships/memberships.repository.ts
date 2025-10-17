@@ -42,7 +42,7 @@ export class MembershipsRepository {
     return res.count;
   }
 
-  // (Opcional) Diagnóstico: ver candidatos a expirar
+  // Diagnóstico: ver candidatos a expirar
   async findCandidatesToExpire(now: Date) {
     return this.prisma.membership.findMany({
       where: { status: 'ACTIVE', endDate: { lt: now } },

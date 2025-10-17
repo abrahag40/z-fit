@@ -4,6 +4,7 @@ import { CreateMembershipDto } from './dto/create-membership.dto';
 import { UpdateMembershipDto } from './dto/update-membership.dto';
 import { MembershipResponseDto } from './dto/membership-response.dto';
 import { Membership } from '@prisma/client';
+import { Role, MembershipStatus } from '@prisma/client';
 
 @Injectable()
 export class MembershipsService {
@@ -21,18 +22,27 @@ export class MembershipsService {
     return this.toResponse(membership);
   }
 
-  async findAll(): Promise<MembershipResponseDto[]> {
-    const data = await this.repo.findAll();
-    return data.map(m => this.toResponse(m));
+  async findAll(role: Role, userId: string): Promise<MembershipResponseDto[]> {
+    let data;
+  
+    if (role === Role.ADMIN || role === Role.STAFF) {
+      data = await this.repo.findAll();
+    } else {
+      // CLIENT → solo sus membresías activas
+      data = await this.repo.findByUser(userId);
+      data = data.filter((m) => m.status === MembershipStatus.ACTIVE);
+    }
+  
+    return data.map((m) => this.toResponse(m));
   }
 
-  async findById(id: string, userId: string, role: string): Promise<MembershipResponseDto> {
+  async findById(id: string, userId: string, role: Role): Promise<MembershipResponseDto> {
     const membership = await this.repo.findById(id);
     if (!membership) throw new NotFoundException('Membresía no encontrada');
-
-    if (role === 'CLIENT' && membership.userId !== userId)
+  
+    if (role === Role.CLIENT && membership.userId !== userId)
       throw new ForbiddenException('No puedes acceder a esta membresía');
-
+  
     return this.toResponse(membership);
   }
 
