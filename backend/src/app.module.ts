@@ -11,6 +11,7 @@ import { AuthModule } from './auth/auth.module';
 import { RolesGuard } from './auth/roles.guard';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { MembershipsModule } from './memberships/memberships.module';
+import { CheckinModule } from './checkin/checkin.module';
 
 @Module({
   imports: [
@@ -26,6 +27,8 @@ import { MembershipsModule } from './memberships/memberships.module';
     UsersModule,
     AuthModule,
     MembershipsModule,
+    CheckinModule,
+
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

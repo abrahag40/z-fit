@@ -49,4 +49,14 @@ export class MembershipsRepository {
       orderBy: { endDate: 'asc' },
     });
   }
+
+  async findActiveByUserId(userId: string) {
+    return this.prisma.membership.findFirst({
+      where: {
+        userId,
+        status: 'ACTIVE',
+      },
+      orderBy: { endDate: 'desc' },
+    });
+  }
 }
