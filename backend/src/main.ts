@@ -1,33 +1,59 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import helmet from 'helmet';
-import { Logger } from 'nestjs-pino';
+import { Logger, LoggerErrorInterceptor } from 'nestjs-pino';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import configuration from './config/configuration';
+import { DebugSocketIoAdapter } from './common/websocket/ws.adapter';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  // ---------------------------------------------------------
+  // 🧩 Inicialización de la aplicación NestJS
+  // ---------------------------------------------------------
+  const app = await NestFactory.create(AppModule, {
+    cors: true,
+    bufferLogs: true,
+  });
+
+  // ---------------------------------------------------------
+  // ⚙️ Logger y adaptador WebSocket
+  // ---------------------------------------------------------
   const logger = app.get(Logger);
-  app.useLogger(app.get(Logger));  // donde Logger viene de nestjs-pino
+  app.useLogger(logger);
+  app.useGlobalInterceptors(new LoggerErrorInterceptor());
+  app.useWebSocketAdapter(new DebugSocketIoAdapter(app)); // ✅ integra Socket.IO con Nest
+
+  // ---------------------------------------------------------
+  // 🛡️ Seguridad y CORS
+  // ---------------------------------------------------------
+  app.use(
+    helmet({
+      crossOriginResourcePolicy: false,
+      contentSecurityPolicy: false,
+    }),
+  );
 
   const config = configuration();
+  app.enableCors({
+    origin: config.cors.origin ?? '*',
+    credentials: true,
+  });
 
-  // Seguridad
-  app.use(helmet());
+  // ---------------------------------------------------------
+  // ✅ Validación global (class-validator)
+  // ---------------------------------------------------------
+  app.useGlobalPipes(
+    new ValidationPipe({
+      transform: true,
+      whitelist: true,
+      forbidNonWhitelisted: true,
+    }),
+  );
 
-  // CORS
-  const origins = config.cors.origin;
-  app.enableCors({ origin: origins, credentials: true });
-
-  // Validación global
-  app.useGlobalPipes(new ValidationPipe({
-    transform: true,
-    whitelist: true,
-    forbidNonWhitelisted: true,
-  }));
-
-  // Swagger
+  // ---------------------------------------------------------
+  // 📚 Swagger API Docs
+  // ---------------------------------------------------------
   const swaggerCfg = new DocumentBuilder()
     .setTitle(config.swagger.title)
     .setDescription(config.swagger.description)
@@ -35,14 +61,17 @@ async function bootstrap() {
     .addBearerAuth()
     .build();
 
-  const document = SwaggerModule.createDocument(app, swaggerCfg, {
-    // future: include extraModels for DTOs
-  });
+  const document = SwaggerModule.createDocument(app, swaggerCfg);
   SwaggerModule.setup(config.swagger.path, app, document);
 
-  const port = config.port;
+  // ---------------------------------------------------------
+  // 🚀 Servidor HTTP + WebSocket en un solo puerto
+  // ---------------------------------------------------------
+  const port = config.port || 3000;
   await app.listen(port);
-  logger.log(`🚀 API running on http://localhost:${port}`);
-  logger.log(`📚 Swagger on http://localhost:${port}${config.swagger.path}`);
+
+  logger.log(`🚀 API + Socket.IO corriendo en http://localhost:${port}`);
+  logger.log(`📚 Swagger disponible en http://localhost:${port}${config.swagger.path}`);
 }
+
 bootstrap();

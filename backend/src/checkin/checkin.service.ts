@@ -1,74 +1,83 @@
 import { Injectable, ForbiddenException } from '@nestjs/common';
-import { MembershipsRepository } from '../memberships/memberships.repository';
 import { CheckinRepository } from './checkin.repository';
-import { CheckinStatus } from '@prisma/client';
+import { MembershipsRepository } from '../memberships/memberships.repository';
 import { CreateCheckinDto } from './dto/create-checkin.dto';
-import { CheckinResponseDto } from './dto/checkin-response.dto';
-import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
-import { WsGateway } from 'src/common/websocket/ws.gateway';
+import { CheckinStatus } from '@prisma/client';
+import { WsGateway } from '../common/websocket/ws.gateway'; // ✅ integración realtime
 
 @Injectable()
 export class CheckinService {
   constructor(
-    private memberships: MembershipsRepository,
-    private repo: CheckinRepository,
-    private ws: WsGateway,
-    @InjectPinoLogger(CheckinService.name) private readonly logger: PinoLogger,
+    private readonly repo: CheckinRepository,
+    private readonly memberships: MembershipsRepository,
+    private readonly ws: WsGateway, // ✅ inyectamos el gateway de websockets
   ) {}
 
-  async registerCheckin(dto: CreateCheckinDto): Promise<CheckinResponseDto> {
-    this.logger.info(`Intento de acceso: user=${dto.userId}`);
-
-    // Buscar membresia activa
+  /**
+   * Registrar check-in validando membresía activa
+   * Emite evento realtime "checkin_event" al gateway
+   */
+  async register(dto: CreateCheckinDto) {
     const activeMembership = await this.memberships.findActiveByUserId(dto.userId);
 
-    // Si no hay membresía activa → acceso denegado
+    // 🔴 Sin membresía activa
     if (!activeMembership) {
-      await this.repo.create({
+      const denied = await this.repo.create({
         userId: dto.userId,
+        membershipId: null,
         status: CheckinStatus.DENIED,
         notes: 'Sin membresía activa',
       });
 
-      this.logger.warn(`Acceso denegado → user=${dto.userId} sin membresía activa`);
-      this.ws.emitEvent('checkin_event', {
+      this.ws.emit('checkin_event', {
+        status: 'DENIED',
         userId: dto.userId,
         membershipId: null,
-        status: 'DENIED',
-        timestamp: new Date(),
+        timestamp: denied.timestamp.toISOString(),
+        notes: denied.notes,
       });
 
-      throw new ForbiddenException('Acceso denegado: membresía inactiva o vencida.');
+      throw new ForbiddenException('El usuario no tiene una membresía activa');
     }
 
-    // Si hay membresía activa → permitir acceso
+    // 🟢 Membresía activa → crear registro permitido
     const checkin = await this.repo.create({
       userId: dto.userId,
       membershipId: activeMembership.id,
       status: CheckinStatus.ALLOWED,
-      notes: dto.notes,
+      notes: dto.notes ?? null,
     });
 
-    this.logger.info(`Acceso permitido → user=${dto.userId}, membership=${activeMembership.id}`);
-    this.ws.emitEvent('checkin_event', {
+    // Emitimos evento realtime
+    this.ws.emit('checkin_event', {
+      status: 'ALLOWED',
       userId: dto.userId,
       membershipId: activeMembership.id,
-      status: 'ALLOWED',
-      timestamp: new Date(),
+      timestamp: checkin.timestamp.toISOString(),
+      notes: checkin.notes,
     });
 
     return checkin;
   }
 
-  findAll() {
+  /**
+   * Listar todos los check-ins
+   */
+  async findAll() {
     return this.repo.findAll();
   }
 
-  findByUser(userId: string) {
+  /**
+   * Buscar check-ins por usuario
+   */
+  async findByUser(userId: string) {
     return this.repo.findByUser(userId);
   }
 
-  findToday() {
+  /**
+   * Listar check-ins del día actual
+   */
+  async findToday() {
     return this.repo.findToday();
   }
 }

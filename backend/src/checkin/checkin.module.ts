@@ -1,19 +1,22 @@
 import { Module } from '@nestjs/common';
-import { CheckinService } from './checkin.service';
 import { CheckinController } from './checkin.controller';
+import { CheckinService } from './checkin.service';
 import { CheckinRepository } from './checkin.repository';
 import { PrismaService } from '../prisma/prisma.service';
 import { MembershipsRepository } from '../memberships/memberships.repository';
-import { WsModule } from '../common/websocket/ws.module';
+import { WsModule } from '../common/websocket/ws.module'; // ✅ Importamos el módulo WebSocket
 
 @Module({
-  imports: [WsModule],
+  imports: [
+    WsModule, // 👈 Permite inyectar WsGateway dentro del servicio
+  ],
   controllers: [CheckinController],
   providers: [
     CheckinService,
-    CheckinRepository,      // ✅ agregado
-    MembershipsRepository,  // ya lo tenías, bien
+    CheckinRepository,
+    MembershipsRepository,
     PrismaService,
   ],
+  exports: [CheckinService],
 })
 export class CheckinModule {}
