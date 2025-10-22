@@ -14,6 +14,7 @@ import { MembershipsModule } from './memberships/memberships.module';
 import { CheckinModule } from './checkin/checkin.module';
 import { WsModule } from './common/websocket/ws.module';
 import { DashboardModule } from 'dashboard/dashboard.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
@@ -31,7 +32,8 @@ import { DashboardModule } from 'dashboard/dashboard.module';
     MembershipsModule,
     CheckinModule,
     WsModule,
-    DashboardModule
+    DashboardModule,
+    ScheduleModule.forRoot(),
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },
