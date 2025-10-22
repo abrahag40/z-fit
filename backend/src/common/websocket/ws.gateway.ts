@@ -63,4 +63,11 @@ export class WsGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayD
     this.logger.verbose(`📡 Emitiendo evento: ${event}`);
     this.server.emit(event, payload);
   }
+
+  /**
+   * Retorna el número actual de clientes conectados
+   */
+  getConnectedClientsCount(): number {
+    return this.server?.sockets.sockets.size ?? 0;
+  }
 }
