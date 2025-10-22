@@ -5,10 +5,14 @@ import { CheckinRepository } from './checkin.repository';
 import { PrismaService } from '../prisma/prisma.service';
 import { MembershipsRepository } from '../memberships/memberships.repository';
 import { WsModule } from '../common/websocket/ws.module'; // ✅ Importamos el módulo WebSocket
+import { DashboardModule } from 'dashboard/dashboard.module';
+import { PrismaModule } from 'src/prisma/prisma.module';
 
 @Module({
   imports: [
     WsModule, // 👈 Permite inyectar WsGateway dentro del servicio
+    PrismaModule,
+    DashboardModule
   ],
   controllers: [CheckinController],
   providers: [

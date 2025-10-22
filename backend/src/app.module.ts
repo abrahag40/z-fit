@@ -13,6 +13,7 @@ import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { MembershipsModule } from './memberships/memberships.module';
 import { CheckinModule } from './checkin/checkin.module';
 import { WsModule } from './common/websocket/ws.module';
+import { DashboardModule } from 'dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { WsModule } from './common/websocket/ws.module';
     MembershipsModule,
     CheckinModule,
     WsModule,
+    DashboardModule
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },
