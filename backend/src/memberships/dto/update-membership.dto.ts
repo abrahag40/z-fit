@@ -3,10 +3,10 @@ import { IsDateString, IsEnum, IsNumber, IsOptional, IsString } from 'class-vali
 import { MembershipStatus } from '@prisma/client';
 
 export class UpdateMembershipDto {
-  @ApiPropertyOptional({ example: 'Renovación anual' })
+  @ApiPropertyOptional({ example: 'clx123planid456' })
   @IsOptional()
   @IsString()
-  type?: string;
+  planId?: string;
 
   @ApiPropertyOptional({ example: '2025-11-16T00:00:00Z' })
   @IsOptional()
@@ -16,7 +16,12 @@ export class UpdateMembershipDto {
   @ApiPropertyOptional({ example: 1200 })
   @IsOptional()
   @IsNumber()
-  price?: number;
+  priceSnapshot?: number;
+
+  @ApiPropertyOptional({ example: 'MXN' })
+  @IsOptional()
+  @IsString()
+  currency?: string;
 
   @ApiPropertyOptional({ enum: MembershipStatus })
   @IsOptional()

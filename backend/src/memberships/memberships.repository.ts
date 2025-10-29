@@ -1,62 +1,83 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
-import { Prisma, Membership } from '@prisma/client';
+import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class MembershipsRepository {
-  constructor(private prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) {}
 
-  create(data: Prisma.MembershipCreateInput): Promise<Membership> {
-    return this.prisma.membership.create({ data });
-  }
-
-  findAll(): Promise<Membership[]> {
-    return this.prisma.membership.findMany({ include: { user: true } });
-  }
-
-  findById(id: string): Promise<Membership | null> {
-    return this.prisma.membership.findUnique({ where: { id }, include: { user: true } });
-  }
-
-  findByUser(userId: string): Promise<Membership[]> {
-    return this.prisma.membership.findMany({ where: { userId }, include: { user: true } });
-  }
-
-  update(id: string, data: Prisma.MembershipUpdateInput): Promise<Membership> {
-    return this.prisma.membership.update({ where: { id }, data });
-  }
-
-  delete(id: string): Promise<Membership> {
-    return this.prisma.membership.delete({ where: { id } });
-  }
-
-  // Nuevo método: contar y expirar en la base con un solo query
-  async expireAllBefore(now: Date): Promise<number> {
-    const res = await this.prisma.membership.updateMany({
-      where: {
-        status: 'ACTIVE',             // o MembershipStatus.ACTIVE
-        endDate: { lt: now },
-      },
-      data: { status: 'EXPIRED' },     // o MembershipStatus.EXPIRED
+  findById(id: string) {
+    return this.prisma.membership.findUnique({
+      where: { id },
+      include: { plan: true, user: true },
     });
-    return res.count;
   }
 
-  // Diagnóstico: ver candidatos a expirar
-  async findCandidatesToExpire(now: Date) {
+  findAll() {
     return this.prisma.membership.findMany({
-      where: { status: 'ACTIVE', endDate: { lt: now } },
-      orderBy: { endDate: 'asc' },
+      include: { plan: true, user: true },
     });
   }
 
-  async findActiveByUserId(userId: string) {
-    return this.prisma.membership.findFirst({
-      where: {
-        userId,
-        status: 'ACTIVE',
-      },
-      orderBy: { endDate: 'desc' },
+  findByUser(userId: string) {
+    return this.prisma.membership.findMany({
+      where: { userId },
+      include: { plan: true },
     });
+  }
+
+  // ✅ Agrega este método para resolver el error
+  findPlanById(planId: string) {
+    return this.prisma.membershipPlan.findUnique({
+      where: { id: planId },
+    });
+  }
+
+  // ✅ Y los auxiliares usados por el service
+  async expireAllBefore(date: Date) {
+    const result = await this.prisma.membership.updateMany({
+      where: {
+        status: 'ACTIVE',
+        endDate: { lt: date },
+      },
+      data: { status: 'EXPIRED' },
+    });
+    return result.count;
+  }
+
+  async findCandidatesToExpire(date: Date) {
+    return this.prisma.membership.findMany({
+      where: {
+        status: 'ACTIVE',
+        endDate: { lt: date },
+      },
+      select: { id: true, userId: true, endDate: true },
+    });
+  }
+
+  async create(data: any) {
+    return this.prisma.membership.create({
+      data: {
+        user: { connect: { id: data.userId } }, // ✅ conexión correcta
+        status: data.status,
+        startDate: data.startDate,
+        endDate: data.endDate,
+        planId: data.planId,
+        priceSnapshot: data.priceSnapshot,
+        currency: data.currency,
+      },
+      include: { plan: true, user: true },
+    });
+  }
+
+  async update(id: string, data: any) {
+    return this.prisma.membership.update({
+      where: { id },
+      data,
+      include: { plan: true, user: true },
+    });
+  }
+
+  async delete(id: string) {
+    return this.prisma.membership.delete({ where: { id } });
   }
 }

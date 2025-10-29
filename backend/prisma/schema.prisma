@@ -7,34 +7,24 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id             String        @id @default(cuid())
-  email          String        @unique
-  name           String?
-  passwordHash   String
-  role           Role          @default(CLIENT)
-  isActive       Boolean       @default(true)
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
-  lastLoginAt    DateTime?
-  memberships    Membership[]  // 1:N
-  checkins       Checkin[]     // 👈 1:N nueva relación
+//
+// ====================== ENUMS ======================
+//
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
 }
 
-model Membership {
-  id            String            @id @default(cuid())
-  userId        String
-  type          String
-  startDate     DateTime
-  endDate       DateTime
-  status        MembershipStatus  @default(ACTIVE)
-  price         Float?
-  createdAt     DateTime          @default(now())
-  updatedAt     DateTime          @updatedAt
-  user          User              @relation(fields: [userId], references: [id])
-  checkins      Checkin[]         // 👈 nueva relación
-  @@index([userId])
-  @@map("memberships")
+enum PaymentMethod {
+  CASH
+  CARD
+  TRANSFER
+  STRIPE
+  CONEKTA
+  OPENPAY
 }
 
 enum Role {
@@ -55,6 +45,91 @@ enum CheckinStatus {
   DENIED
 }
 
+//
+// ====================== MODELOS ======================
+//
+
+/// 💰 Planes de membresía base (ej. Básico, Premium, Anual)
+model MembershipPlan {
+  id           String       @id @default(cuid())
+  name         String
+  price        Decimal      @db.Decimal(10, 2)
+  currency     String       @default("MXN")
+  durationDays Int          @default(30)
+  active       Boolean      @default(true)
+
+  memberships  Membership[]
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@index([active])
+  @@index([name])
+}
+
+/// 💵 Pagos registrados (manuales o automáticos)
+model Payment {
+  id            String         @id @default(cuid())
+  userId        String
+  membershipId  String?
+  amount        Decimal        @db.Decimal(10, 2)
+  currency      String         @default("MXN")
+  status        PaymentStatus  @default(PAID)
+  method        PaymentMethod
+  reference     String?
+  paidAt        DateTime?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  user          User           @relation(fields: [userId], references: [id])
+  membership    Membership?    @relation(fields: [membershipId], references: [id])
+
+  @@index([status, paidAt])
+  @@index([userId])
+  @@index([membershipId])
+}
+
+/// 👤 Usuarios del sistema (admin, staff, cliente)
+model User {
+  id             String        @id @default(cuid())
+  email          String        @unique
+  name           String?
+  passwordHash   String
+  role           Role          @default(CLIENT)
+  isActive       Boolean       @default(true)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  lastLoginAt    DateTime?
+
+  memberships    Membership[]  // 1:N
+  checkins       Checkin[]     // 1:N
+  payments       Payment[]     // 1:N
+}
+
+/// 🏋️ Membresías activas o históricas de usuarios
+model Membership {
+  id             String           @id @default(cuid())
+  userId         String
+  status         MembershipStatus
+  startDate      DateTime
+  endDate        DateTime
+  planId         String?
+  priceSnapshot  Decimal?         @db.Decimal(10, 2)
+  currency       String           @default("MXN")
+
+  user           User             @relation(fields: [userId], references: [id])
+  plan           MembershipPlan?  @relation(fields: [planId], references: [id])
+  checkins       Checkin[]
+  payments       Payment[]
+
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@index([status, endDate])
+  @@index([userId])
+  @@index([planId])
+}
+
+/// 🕒 Registro de accesos y asistencias
 model Checkin {
   id            String         @id @default(cuid())
   userId        String

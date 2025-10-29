@@ -1,83 +1,79 @@
-import { Injectable, ForbiddenException } from '@nestjs/common';
-import { CheckinRepository } from './checkin.repository';
-import { MembershipsRepository } from '../memberships/memberships.repository';
-import { CreateCheckinDto } from './dto/create-checkin.dto';
+import { Injectable, Logger } from '@nestjs/common';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { WsGateway } from 'src/common/websocket/ws.gateway';
 import { CheckinStatus } from '@prisma/client';
-import { WsGateway } from '../common/websocket/ws.gateway'; // ✅ integración realtime
 
 @Injectable()
 export class CheckinService {
+  private readonly logger = new Logger(CheckinService.name);
+
   constructor(
-    private readonly repo: CheckinRepository,
-    private readonly memberships: MembershipsRepository,
-    private readonly ws: WsGateway, // ✅ inyectamos el gateway de websockets
+    private readonly prisma: PrismaService,
+    private readonly ws: WsGateway, // 👈 inyectamos el gateway
   ) {}
 
-  /**
-   * Registrar check-in validando membresía activa
-   * Emite evento realtime "checkin_event" al gateway
-   */
-  async register(dto: CreateCheckinDto) {
-    const activeMembership = await this.memberships.findActiveByUserId(dto.userId);
-
-    // 🔴 Sin membresía activa
-    if (!activeMembership) {
-      const denied = await this.repo.create({
-        userId: dto.userId,
-        membershipId: null,
-        status: CheckinStatus.DENIED,
-        notes: 'Sin membresía activa',
-      });
-
-      this.ws.emit('checkin_event', {
-        status: 'DENIED',
-        userId: dto.userId,
-        membershipId: null,
-        timestamp: denied.timestamp.toISOString(),
-        notes: denied.notes,
-      });
-
-      throw new ForbiddenException('El usuario no tiene una membresía activa');
-    }
-
-    // 🟢 Membresía activa → crear registro permitido
-    const checkin = await this.repo.create({
-      userId: dto.userId,
-      membershipId: activeMembership.id,
-      status: CheckinStatus.ALLOWED,
-      notes: dto.notes ?? null,
+  async create(data: { userId: string; membershipId?: string; notes?: string }) {
+    const checkin = await this.prisma.checkin.create({
+      data: {
+        userId: data.userId,
+        membershipId: data.membershipId,
+        status: CheckinStatus.ALLOWED,
+        notes: data.notes ?? null,
+      },
     });
 
-    // Emitimos evento realtime
-    this.ws.emit('checkin_event', {
-      status: 'ALLOWED',
-      userId: dto.userId,
-      membershipId: activeMembership.id,
-      timestamp: checkin.timestamp.toISOString(),
-      notes: checkin.notes,
-    });
+    this.logger.log(`✅ Check-in registrado para usuario ${data.userId}`);
+
+    // 🔔 Emitir actualización en tiempo real
+    this.ws.emitCheckinEvent(checkin);
+    this.ws.emitDashboardUpdate({ type: 'checkin', data: checkin });
 
     return checkin;
   }
 
-  /**
-   * Listar todos los check-ins
-   */
   async findAll() {
-    return this.repo.findAll();
+    return this.prisma.checkin.findMany({
+      include: {
+        user: {
+          select: { id: true, email: true, name: true, role: true },
+        },
+        membership: {
+          select: { id: true, status: true, endDate: true },
+        },
+      },
+      orderBy: { timestamp: 'desc' },
+    });
   }
 
-  /**
-   * Buscar check-ins por usuario
-   */
   async findByUser(userId: string) {
-    return this.repo.findByUser(userId);
+    return this.prisma.checkin.findMany({
+      where: { userId },
+      orderBy: { timestamp: 'desc' },
+      take: 50,
+    });
   }
 
-  /**
-   * Listar check-ins del día actual
+    /**
+   * Alias legado para compatibilidad con controladores antiguos
    */
-  async findToday() {
-    return this.repo.findToday();
-  }
+    async register(dto: { userId: string; membershipId?: string; notes?: string }) {
+      return this.create(dto);
+    }
+  
+    /**
+     * Retorna check-ins del día (00:00 → ahora)
+     */
+    async findToday() {
+      const start = new Date();
+      start.setHours(0, 0, 0, 0);
+  
+      return this.prisma.checkin.findMany({
+        where: { timestamp: { gte: start } },
+        orderBy: { timestamp: 'desc' },
+        include: {
+          user: { select: { id: true, email: true, name: true, role: true } },
+          membership: { select: { id: true, status: true, endDate: true } },
+        },
+      });
+    }
 }

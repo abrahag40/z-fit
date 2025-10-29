@@ -1,73 +1,63 @@
 import {
   WebSocketGateway,
   WebSocketServer,
-  SubscribeMessage,
+  OnGatewayInit,
   OnGatewayConnection,
   OnGatewayDisconnect,
-  OnGatewayInit,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 
-@WebSocketGateway({
-  namespace: '/realtime', // 👈 Namespace donde los clientes se conectan
-  cors: { origin: '*', methods: ['GET', 'POST'] },
-})
-export class WsGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
-  @WebSocketServer() server: Server;
+@Injectable()
+@WebSocketGateway({ cors: { origin: '*' } })
+export class WsGateway
+  implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
+{
+  private readonly logger = new Logger(WsGateway.name);
 
-  private readonly logger = new Logger('WebSocketsController');
+  @WebSocketServer()
+  server!: Server;
 
-  /**
-   * Se ejecuta cuando el Gateway ha sido inicializado correctamente.
-   */
   afterInit(server: Server) {
-    this.logger.log('✅ WsGateway inicializado correctamente');
-    this.logger.log('🌐 Namespace activo: /realtime');
+    this.logger.log('⚙️ WsGateway inicializado correctamente');
+    try {
+      const namespaces = [...(server as any)._nsps?.keys?.() ?? []];
+      this.logger.debug(`🧠 Namespaces activos: ${namespaces.join(', ') || '/'}`);
+    } catch {
+      this.logger.warn('No se pudieron obtener los namespaces activos');
+    }
   }
 
-  /**
-   * Detecta conexiones nuevas
-   */
   handleConnection(client: Socket) {
     this.logger.log(`🟢 Cliente conectado: ${client.id}`);
-    client.emit('connected', { message: 'Conexión establecida con /realtime' });
+    client.emit('connected', { message: 'Conectado al canal realtime ✅' });
   }
 
-  /**
-   * Detecta desconexiones de clientes
-   */
   handleDisconnect(client: Socket) {
     this.logger.warn(`🔴 Cliente desconectado: ${client.id}`);
   }
 
-  /**
-   * Ejemplo de handler para mensajes de prueba (ping/pong)
-   */
-  @SubscribeMessage('ping')
-  handlePing(client: Socket, payload: any) {
-    this.logger.debug(`📨 Ping recibido de ${client.id}: ${JSON.stringify(payload)}`);
-    client.emit('pong', { ok: true, echo: payload });
+  // === Emisiones de eventos globales ===
+  emitDashboardUpdate(payload: any) {
+    this.logger.debug('📡 Emitiendo dashboard_update');
+    this.server.emit('dashboard_update', payload);
   }
 
-  /**
-   * Método general para emitir eventos desde servicios.
-   * Usado por: CheckinService, Notificaciones, Dashboard, etc.
+  emitFinanceUpdate(payload: any) {
+    this.logger.debug('💸 Emitiendo finance_update');
+    this.server.emit('finance_update', payload);
+  }
+
+  emitCheckinEvent(data: any) {
+    this.logger.debug('🏋️‍♀️ Nuevo check-in detectado');
+    this.server.emit('checkin_event', data);
+  }
+
+    /**
+   * Devuelve el número de clientes conectados al Socket.IO
    */
-  emit(event: string, payload: any) {
-    if (!this.server) {
-      this.logger.error(`❌ Intento de emitir evento "${event}" antes de inicializar el servidor`);
-      return;
+    getConnectedClientsCount(): number {
+      // .sockets.sockets es un Map con todas las conexiones activas
+      return this.server?.sockets?.sockets?.size ?? 0;
     }
-
-    this.logger.verbose(`📡 Emitiendo evento: ${event}`);
-    this.server.emit(event, payload);
-  }
-
-  /**
-   * Retorna el número actual de clientes conectados
-   */
-  getConnectedClientsCount(): number {
-    return this.server?.sockets.sockets.size ?? 0;
-  }
 }

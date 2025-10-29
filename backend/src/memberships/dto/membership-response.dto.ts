@@ -6,7 +6,13 @@ export class MembershipResponseDto {
   id: string;
 
   @ApiProperty()
-  type: string;
+  userId: string;
+
+  @ApiProperty()
+  planId?: string; // ✅ agrega esta línea
+
+  @ApiProperty()
+  planName?: string | null;
 
   @ApiProperty()
   startDate: Date;
@@ -14,14 +20,14 @@ export class MembershipResponseDto {
   @ApiProperty()
   endDate: Date;
 
-  @ApiProperty({ enum: MembershipStatus })
+  @ApiProperty()
   status: MembershipStatus;
 
   @ApiProperty()
-  price?: number;
+  priceSnapshot: number;
 
   @ApiProperty()
-  userId: string;
+  currency: string;
 
   @ApiProperty()
   createdAt: Date;
