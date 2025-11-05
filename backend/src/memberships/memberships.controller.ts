@@ -85,4 +85,12 @@ export class MembershipsController {
   debugCandidates() {
     return this.service.previewExpiredCandidates();
   }
+
+  @Roles(Role.ADMIN, Role.STAFF)
+  @Get('debug/full')
+  async debugFull() {
+    const data = await this.service.findAllWithRelationsRaw();
+    console.log('🧩 /memberships/debug/full →', data.length, 'registros');
+    return data;
+  }
 }
