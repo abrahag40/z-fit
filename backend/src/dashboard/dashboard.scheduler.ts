@@ -22,7 +22,9 @@ export class DashboardScheduler {
   ) {
     // Forzamos un refresco inicial al levantar el servidor
     setTimeout(async () => {
-      this.logger.log('🚀 Refrescando métricas iniciales tras arranque del servidor...');
+      this.logger.log(
+        '🚀 Refrescando métricas iniciales tras arranque del servidor...',
+      );
       try {
         await this.dashboard.refreshAndBroadcast();
         this.lastFallbackRun = Date.now();
@@ -51,7 +53,9 @@ export class DashboardScheduler {
       if (connectedClients === 0) {
         if (timeSinceLastFallback >= tenMinutes) {
           // Ejecuta modo fallback cada 10 min
-          this.logger.warn('🕐 Sin clientes activos → ejecutando fallback de métricas.');
+          this.logger.warn(
+            '🕐 Sin clientes activos → ejecutando fallback de métricas.',
+          );
           await this.dashboard.refreshAndBroadcast();
           this.lastFallbackRun = now;
         } else {
@@ -65,11 +69,18 @@ export class DashboardScheduler {
       }
 
       // ✅ Modo normal
-      this.logger.log(`⏰ ${connectedClients} cliente(s) conectados → actualizando métricas...`);
+      this.logger.log(
+        `⏰ ${connectedClients} cliente(s) conectados → actualizando métricas...`,
+      );
       await this.dashboard.refreshAndBroadcast();
-      this.logger.verbose('📢 Métricas actualizadas y emitidas en tiempo real.');
+      this.logger.verbose(
+        '📢 Métricas actualizadas y emitidas en tiempo real.',
+      );
     } catch (err) {
-      this.logger.error('❌ Error durante actualización automática del dashboard', err);
+      this.logger.error(
+        '❌ Error durante actualización automática del dashboard',
+        err,
+      );
     }
   }
 
@@ -83,7 +94,9 @@ export class DashboardScheduler {
       if (isNaN(count)) return 0;
       return count;
     } catch (e) {
-      this.logger.warn('⚠️ Gateway aún no inicializado, usando count=0 (modo seguro)');
+      this.logger.warn(
+        '⚠️ Gateway aún no inicializado, usando count=0 (modo seguro)',
+      );
       return 0;
     }
   }

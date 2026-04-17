@@ -140,7 +140,8 @@ export class DashboardFinanceService {
 
     for (const p of payments) {
       const planName = p.membership?.plan?.name ?? 'Sin plan';
-      performanceMap[planName] = (performanceMap[planName] ?? 0) + Number(p.amount);
+      performanceMap[planName] =
+        (performanceMap[planName] ?? 0) + Number(p.amount);
     }
 
     const performance = Object.entries(performanceMap).map(([plan, total]) => ({
@@ -148,7 +149,9 @@ export class DashboardFinanceService {
       total,
     }));
 
-    this.logger.debug(`📊 Rendimiento por plan: ${JSON.stringify(performance)}`);
+    this.logger.debug(
+      `📊 Rendimiento por plan: ${JSON.stringify(performance)}`,
+    );
     return performance;
   }
 

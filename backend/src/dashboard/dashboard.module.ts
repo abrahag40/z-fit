@@ -19,17 +19,10 @@ import { DashboardScheduler } from './dashboard.scheduler';
 @Module({
   imports: [
     PrismaModule, // acceso a BD
-    WsModule,     // integración realtime
+    WsModule, // integración realtime
   ],
   controllers: [DashboardController],
-  providers: [
-    DashboardService,
-    DashboardFinanceService,
-    DashboardScheduler,
-  ],
-  exports: [
-    DashboardService,
-    DashboardFinanceService,
-  ],
+  providers: [DashboardService, DashboardFinanceService, DashboardScheduler],
+  exports: [DashboardService, DashboardFinanceService],
 })
 export class DashboardModule {}

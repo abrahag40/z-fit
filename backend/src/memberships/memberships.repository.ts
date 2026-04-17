@@ -41,7 +41,15 @@ export class MembershipsRepository {
       where: { id },
       include: {
         user: { select: { id: true, email: true, name: true, role: true } },
-        plan: { select: { id: true, name: true, price: true, durationDays: true, currency: true } },
+        plan: {
+          select: {
+            id: true,
+            name: true,
+            price: true,
+            durationDays: true,
+            currency: true,
+          },
+        },
       },
     });
   }
@@ -51,7 +59,15 @@ export class MembershipsRepository {
     return this.prisma.membership.findMany({
       include: {
         user: { select: { id: true, email: true, name: true, role: true } },
-        plan: { select: { id: true, name: true, price: true, durationDays: true, currency: true } },
+        plan: {
+          select: {
+            id: true,
+            name: true,
+            price: true,
+            durationDays: true,
+            currency: true,
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -117,7 +133,15 @@ export class MembershipsRepository {
       where: { status },
       include: {
         user: { select: { id: true, email: true, name: true, role: true } },
-        plan: { select: { id: true, name: true, price: true, durationDays: true, currency: true } },
+        plan: {
+          select: {
+            id: true,
+            name: true,
+            price: true,
+            durationDays: true,
+            currency: true,
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -138,11 +162,19 @@ export class MembershipsRepository {
       where: { status: MembershipStatus.ACTIVE },
       include: {
         user: { select: { id: true, email: true, name: true, role: true } },
-        plan: { select: { id: true, name: true, price: true, durationDays: true, currency: true } },
+        plan: {
+          select: {
+            id: true,
+            name: true,
+            price: true,
+            durationDays: true,
+            currency: true,
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
     });
-    return data.filter(m => m.user?.role === 'CLIENT');
+    return data.filter((m) => m.user?.role === 'CLIENT');
   }
 
   /**
@@ -162,7 +194,15 @@ export class MembershipsRepository {
       orderBy: orderBy ?? { createdAt: 'desc' },
       include: {
         user: { select: { id: true, email: true, name: true, role: true } },
-        plan: { select: { id: true, name: true, price: true, durationDays: true, currency: true } },
+        plan: {
+          select: {
+            id: true,
+            name: true,
+            price: true,
+            durationDays: true,
+            currency: true,
+          },
+        },
       },
     });
   }
@@ -236,7 +276,15 @@ export class MembershipsRepository {
       data: createData,
       include: {
         user: { select: { id: true, email: true, name: true, role: true } },
-        plan: { select: { id: true, name: true, price: true, durationDays: true, currency: true } },
+        plan: {
+          select: {
+            id: true,
+            name: true,
+            price: true,
+            durationDays: true,
+            currency: true,
+          },
+        },
       },
     });
   }
@@ -266,7 +314,15 @@ export class MembershipsRepository {
       data: normalized,
       include: {
         user: { select: { id: true, email: true, name: true, role: true } },
-        plan: { select: { id: true, name: true, price: true, durationDays: true, currency: true } },
+        plan: {
+          select: {
+            id: true,
+            name: true,
+            price: true,
+            durationDays: true,
+            currency: true,
+          },
+        },
       },
     });
   }

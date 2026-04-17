@@ -6,7 +6,10 @@ import { WsGateway } from 'src/common/websocket/ws.gateway';
 @Injectable()
 export class DashboardService {
   private readonly logger = new Logger(DashboardService.name);
-  private static readonly cache = new NodeCache({ stdTTL: 30, checkperiod: 15 });
+  private static readonly cache = new NodeCache({
+    stdTTL: 30,
+    checkperiod: 15,
+  });
 
   constructor(
     private prisma: PrismaService,
@@ -36,7 +39,9 @@ export class DashboardService {
 
     const [checkinsToday, activeMemberships, expiredMemberships, expiringSoon] =
       await Promise.all([
-        this.prisma.checkin.count({ where: { timestamp: { gte: startOfDay } } }),
+        this.prisma.checkin.count({
+          where: { timestamp: { gte: startOfDay } },
+        }),
         this.prisma.membership.count({ where: { status: 'ACTIVE' } }),
         this.prisma.membership.count({ where: { status: 'EXPIRED' } }),
         this.prisma.membership.count({
@@ -76,7 +81,7 @@ export class DashboardService {
     return latest;
   }
 
-   /**
+  /**
    * Retorna la cantidad de check-ins por día (últimos 7 días)
    */
   async getDailyCheckinsTrend() {
@@ -147,7 +152,9 @@ export class DashboardService {
    */
   async getActivityHistory(from: string, to: string) {
     if (!from || !to) {
-      throw new BadRequestException('Parámetros "from" y "to" son requeridos (YYYY-MM-DD)');
+      throw new BadRequestException(
+        'Parámetros "from" y "to" son requeridos (YYYY-MM-DD)',
+      );
     }
     const fromDate = this.parseYMD(from);
     const toDate = this.parseYMD(to);
@@ -190,68 +197,68 @@ export class DashboardService {
     };
   }
 
-    /**
+  /**
    * Indicadores globales con comparación semana actual vs semana pasada:
    * - check-ins (conteo)
    * - ingresos (suma)
    * - % variación por métrica
    */
-    async getGlobalPerformance() {
-      // Semana actual: últimos 7 días hasta ahora
-      const now = new Date();
-      const weekStart = new Date(now);
-      weekStart.setDate(now.getDate() - 6);
-      weekStart.setHours(0, 0, 0, 0);
-  
-      // Semana anterior: los 7 días previos a weekStart
-      const prevWeekStart = new Date(weekStart);
-      prevWeekStart.setDate(prevWeekStart.getDate() - 7);
-      const prevWeekEnd = new Date(weekStart); // exclusivo para query lt
-  
-      // Check-ins
-      const [checksCurr, checksPrev] = await Promise.all([
-        this.prisma.checkin.count({ where: { timestamp: { gte: weekStart } } }),
-        this.prisma.checkin.count({
-          where: { timestamp: { gte: prevWeekStart, lt: prevWeekEnd } },
-        }),
-      ]);
-  
-      // Ingresos (pagos PAID)
-      const [revCurrAgg, revPrevAgg] = await Promise.all([
-        this.prisma.payment.aggregate({
-          _sum: { amount: true },
-          where: { status: 'PAID', paidAt: { gte: weekStart } },
-        }),
-        this.prisma.payment.aggregate({
-          _sum: { amount: true },
-          where: {
-            status: 'PAID',
-            paidAt: { gte: prevWeekStart, lt: prevWeekEnd },
-          },
-        }),
-      ]);
-  
-      const revenueCurr = Number(revCurrAgg._sum.amount ?? 0);
-      const revenuePrev = Number(revPrevAgg._sum.amount ?? 0);
-  
-      return {
-        period: {
-          current: { from: weekStart, to: now },
-          previous: { from: prevWeekStart, to: prevWeekEnd },
+  async getGlobalPerformance() {
+    // Semana actual: últimos 7 días hasta ahora
+    const now = new Date();
+    const weekStart = new Date(now);
+    weekStart.setDate(now.getDate() - 6);
+    weekStart.setHours(0, 0, 0, 0);
+
+    // Semana anterior: los 7 días previos a weekStart
+    const prevWeekStart = new Date(weekStart);
+    prevWeekStart.setDate(prevWeekStart.getDate() - 7);
+    const prevWeekEnd = new Date(weekStart); // exclusivo para query lt
+
+    // Check-ins
+    const [checksCurr, checksPrev] = await Promise.all([
+      this.prisma.checkin.count({ where: { timestamp: { gte: weekStart } } }),
+      this.prisma.checkin.count({
+        where: { timestamp: { gte: prevWeekStart, lt: prevWeekEnd } },
+      }),
+    ]);
+
+    // Ingresos (pagos PAID)
+    const [revCurrAgg, revPrevAgg] = await Promise.all([
+      this.prisma.payment.aggregate({
+        _sum: { amount: true },
+        where: { status: 'PAID', paidAt: { gte: weekStart } },
+      }),
+      this.prisma.payment.aggregate({
+        _sum: { amount: true },
+        where: {
+          status: 'PAID',
+          paidAt: { gte: prevWeekStart, lt: prevWeekEnd },
         },
-        checkins: {
-          current: checksCurr,
-          previous: checksPrev,
-          variationPct: this.variationPct(checksPrev, checksCurr),
-        },
-        revenue: {
-          current: revenueCurr,
-          previous: revenuePrev,
-          variationPct: this.variationPct(revenuePrev, revenueCurr),
-          currency: 'MXN',
-        },
-      };
-    }
+      }),
+    ]);
+
+    const revenueCurr = Number(revCurrAgg._sum.amount ?? 0);
+    const revenuePrev = Number(revPrevAgg._sum.amount ?? 0);
+
+    return {
+      period: {
+        current: { from: weekStart, to: now },
+        previous: { from: prevWeekStart, to: prevWeekEnd },
+      },
+      checkins: {
+        current: checksCurr,
+        previous: checksPrev,
+        variationPct: this.variationPct(checksPrev, checksCurr),
+      },
+      revenue: {
+        current: revenueCurr,
+        previous: revenuePrev,
+        variationPct: this.variationPct(revenuePrev, revenueCurr),
+        currency: 'MXN',
+      },
+    };
+  }
 
   // =========================================================
   // Helpers

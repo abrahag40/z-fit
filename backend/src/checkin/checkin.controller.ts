@@ -1,12 +1,10 @@
+import { Body, Controller, Get, Post, Param, Req } from '@nestjs/common';
 import {
-  Body,
-  Controller,
-  Get,
-  Post,
-  Param,
-  Req,
-} from '@nestjs/common';
-import { ApiBearerAuth, ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+  ApiBearerAuth,
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+} from '@nestjs/swagger';
 import { Roles } from '../auth/roles.decorator';
 import { Role } from '@prisma/client';
 import { CheckinService } from './checkin.service';
@@ -28,7 +26,10 @@ export class CheckinController {
     description:
       'Valida membresía activa. Si no existe, registra el intento como DENIED y lanza 403.',
   })
-  @ApiResponse({ status: 201, description: 'Check-in registrado exitosamente.' })
+  @ApiResponse({
+    status: 201,
+    description: 'Check-in registrado exitosamente.',
+  })
   @ApiResponse({ status: 403, description: 'Usuario sin membresía activa.' })
   async register(@Body() dto: CreateCheckinDto) {
     return this.service.register(dto);

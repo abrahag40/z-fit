@@ -7,6 +7,14 @@ import { JwtStrategy } from './jwt.strategy';
 import { UsersModule } from '../users/users.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 
+/**
+ * AuthModule
+ *  - Exporta AuthService y JwtStrategy.
+ *  - El `ThrottlerGuard` se registra en AppModule (scope global)
+ *    para poder cubrir también rutas fuera de /auth si queremos,
+ *    y aplicamos @Throttle() local en AuthController para subir
+ *    la dureza sólo allí.
+ */
 @Module({
   imports: [
     UsersModule,
@@ -17,14 +25,10 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
       useFactory: (cfg: ConfigService) => {
         const secret = cfg.get<string>('JWT_SECRET');
         const expiresInValue = cfg.get<number>('JWT_EXPIRES_IN') ?? 3600;
-
-        if (!secret) {
-          throw new Error('❌ JWT_SECRET no definido en .env');
-        }
-
+        if (!secret) throw new Error('❌ JWT_SECRET no definido');
         return {
           secret,
-          signOptions: { expiresIn: expiresInValue }, // ✅ number, no string
+          signOptions: { expiresIn: expiresInValue },
         };
       },
     }),

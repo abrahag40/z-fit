@@ -12,7 +12,7 @@ import { DashboardModule } from 'src/dashboard/dashboard.module';
   imports: [
     WsModule, // 👈 Permite inyectar WsGateway dentro del servicio
     PrismaModule,
-    DashboardModule
+    DashboardModule,
   ],
   controllers: [CheckinController],
   providers: [

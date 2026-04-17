@@ -1,5 +1,10 @@
 import { Controller, Get, Logger, Query, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiQuery,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { DashboardService } from './dashboard.service';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { RolesGuard } from 'src/auth/roles.guard';
@@ -94,8 +99,16 @@ export class DashboardController {
     summary: 'Histórico de actividad (solo ADMIN)',
     description: 'Registros de check-ins entre fechas específicas.',
   })
-  @ApiQuery({ name: 'from', required: true, description: 'Fecha inicial (YYYY-MM-DD)' })
-  @ApiQuery({ name: 'to', required: true, description: 'Fecha final (YYYY-MM-DD)' })
+  @ApiQuery({
+    name: 'from',
+    required: true,
+    description: 'Fecha inicial (YYYY-MM-DD)',
+  })
+  @ApiQuery({
+    name: 'to',
+    required: true,
+    description: 'Fecha final (YYYY-MM-DD)',
+  })
   async getActivityHistory(
     @Query('from') from: string,
     @Query('to') to: string,
@@ -142,7 +155,8 @@ export class DashboardController {
   @Get('finance/methods')
   @ApiOperation({
     summary: 'Ingresos por método de pago',
-    description: 'Agrupación de ingresos por efectivo, tarjeta, transferencia, etc.',
+    description:
+      'Agrupación de ingresos por efectivo, tarjeta, transferencia, etc.',
   })
   getRevenueByMethod() {
     return this.financeService.getRevenueByMethod();
@@ -152,7 +166,8 @@ export class DashboardController {
   @Get('finance/plans')
   @ApiOperation({
     summary: 'Rendimiento por plan de membresía',
-    description: 'Permite comparar ingresos totales y cantidad de pagos por plan.',
+    description:
+      'Permite comparar ingresos totales y cantidad de pagos por plan.',
   })
   getPerformanceByPlan() {
     return this.financeService.getPerformanceByPlan();
