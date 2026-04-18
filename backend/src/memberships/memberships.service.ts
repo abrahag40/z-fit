@@ -31,7 +31,10 @@ export class MembershipsService {
     const plan = await this.repo.findPlanById(dto.planId);
     if (!plan) throw new NotFoundException('Plan de membresía no encontrado');
 
-    const startDate = typeof dto.startDate === 'string' ? new Date(dto.startDate) : dto.startDate ?? new Date();
+    const startDate =
+      typeof dto.startDate === 'string'
+        ? new Date(dto.startDate)
+        : (dto.startDate ?? new Date());
 
     const endDate = new Date(startDate);
     endDate.setDate(endDate.getDate() + plan.durationDays);

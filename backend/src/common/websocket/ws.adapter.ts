@@ -1,40 +1,41 @@
 import { IoAdapter } from '@nestjs/platform-socket.io';
 import { INestApplicationContext, Logger } from '@nestjs/common';
-import { ServerOptions } from 'socket.io';
+import { Server, ServerOptions } from 'socket.io';
 
 /**
- * Adaptador personalizado para Socket.IO con logs de depuración.
- * 
- * Permite monitorear la inicialización del servidor WebSocket,
- * namespaces activos y errores comunes durante el desarrollo.
+ * Adaptador Socket.IO con logs de depuración y CORS controlado.
+ *
+ * Se delega la whitelist desde configuration() para mantener un
+ * único origen de verdad para HTTP y WebSocket.
  */
 export class DebugSocketIoAdapter extends IoAdapter {
   private readonly logger = new Logger('DebugSocketIoAdapter');
 
-  constructor(private app: INestApplicationContext) {
+  constructor(
+    app: INestApplicationContext,
+    private readonly corsOrigins: string[],
+  ) {
     super(app);
   }
 
-  /**
-   * Crea el servidor Socket.IO con configuración personalizada.
-   * Se ejecuta automáticamente al inicializar NestJS.
-   */
   createIOServer(port: number, options?: ServerOptions) {
-    const server = super.createIOServer(port, {
-      cors: {
-        origin: '*', // Permite pruebas locales (para dashboard o scripts QA)
-        methods: ['GET', 'POST'],
-      },
+    const allowWildcard = this.corsOrigins.includes('*');
+
+    const server: Server = super.createIOServer(port, {
       ...options,
-    });
+      cors: {
+        origin: allowWildcard ? true : this.corsOrigins,
+        methods: ['GET', 'POST'],
+        credentials: !allowWildcard,
+      },
+    }) as Server;
 
-    // Logs informativos
     this.logger.log(`🧩 Socket.IO server creado en puerto ${port}`);
-    this.logger.log('🔍 Namespaces iniciales:');
-    Object.keys(server._nsps || {}).forEach((ns) => this.logger.log(`- ${ns}`));
+    this.logger.log(
+      `🔐 CORS WS: ${allowWildcard ? '*' : this.corsOrigins.join(', ')}`,
+    );
 
-    // Captura de errores globales
-    server.on('connection_error', (err) => {
+    server.on('connection_error', (err: Error) => {
       this.logger.error(`❌ Error de conexión WebSocket: ${err.message}`);
     });
 

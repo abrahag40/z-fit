@@ -5,7 +5,7 @@ import { CheckinStatus } from '@prisma/client';
 /**
  * Repositorio encargado de todas las operaciones de BD
  * relacionadas con el módulo de check-ins.
- * 
+ *
  * Mantiene las consultas separadas de la lógica de negocio
  * (principio de responsabilidad única).
  */

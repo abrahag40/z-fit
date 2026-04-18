@@ -1,0 +1,10 @@
+# macOS
+.DS_Store
+
+# IDE
+.idea
+.vscode
+*.swp
+
+# Env local (los servicios tienen su propio .env)
+.env
